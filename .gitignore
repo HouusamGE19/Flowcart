@@ -1,0 +1,11 @@
+target/
+**/target/
+.idea/
+.vscode/
+*.iml
+.DS_Store
+.env
+node_modules/
+dist/
+coverage/
+*.log

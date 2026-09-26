@@ -1,0 +1,52 @@
+<main class="shell">
+  <header class="hero">
+    <div>
+      <p class="eyebrow">EVENT-DRIVEN COMMERCE LAB</p>
+      <h1>FlowCart <span>Operations</span></h1>
+      <p class="lede">A portfolio-grade Java/Spring distributed system: transactional outbox, Kafka choreography, idempotent consumers, compensating inventory actions and live SSE order tracking.</p>
+    </div>
+    <div class="status-card">
+      <span class="pulse"></span>
+      <div><small>Current order state</small><strong>{{ statusLabel() }}</strong></div>
+    </div>
+  </header>
+
+  <section class="grid">
+    <article class="panel order-panel">
+      <div class="panel-title"><div><span>01</span><h2>Create an order</h2></div><p>POST → outbox → Kafka</p></div>
+      <label>Email<input [(ngModel)]="email" type="email"></label>
+      <label>Product<select [(ngModel)]="selectedSku"><option *ngFor="let product of products()" [value]="product.sku">{{ product.name }} — {{ money(product.priceCents) }}</option></select></label>
+      <label>Quantity<input [(ngModel)]="quantity" type="number" min="1" max="10"></label>
+      <label class="toggle"><input [(ngModel)]="simulatePaymentFailure" type="checkbox"><span></span>Force payment failure to demonstrate compensation</label>
+      <button (click)="createOrder()" [disabled]="busy() || !products().length">{{ busy() ? 'Creating…' : 'Place event-driven order' }}</button>
+      <p class="error" *ngIf="error()">{{ error() }}</p>
+    </article>
+
+    <article class="panel snapshot-panel">
+      <div class="panel-title"><div><span>02</span><h2>Order snapshot</h2></div><p>Read model</p></div>
+      <ng-container *ngIf="order() as o; else empty">
+        <dl>
+          <div><dt>Order</dt><dd>{{ o.id }}</dd></div>
+          <div><dt>Status</dt><dd class="state">{{ o.status }}</dd></div>
+          <div><dt>Total</dt><dd>{{ money(o.totalCents) }}</dd></div>
+          <div><dt>Customer</dt><dd>{{ o.customerEmail }}</dd></div>
+        </dl>
+      </ng-container>
+      <ng-template #empty><div class="empty">Create an order to watch the saga execute.</div></ng-template>
+    </article>
+  </section>
+
+  <section class="panel timeline-panel">
+    <div class="panel-title"><div><span>03</span><h2>Live event timeline</h2></div><p>SSE stream</p></div>
+    <div class="timeline" *ngIf="events().length; else noEvents">
+      <div class="event" *ngFor="let event of events()">
+        <time>{{ event.at }}</time><strong>{{ event.name }}</strong><p>{{ event.detail }}</p>
+      </div>
+    </div>
+    <ng-template #noEvents><div class="empty">Kafka-driven state changes will appear here without refreshing the page.</div></ng-template>
+  </section>
+
+  <footer>
+    <span>Java 21</span><span>Spring Boot 4</span><span>Kafka</span><span>PostgreSQL</span><span>SSE</span><span>Angular</span><span>Docker</span><span>k6</span>
+  </footer>
+</main>

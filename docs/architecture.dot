@@ -1,0 +1,31 @@
+digraph FlowCart {
+  graph [rankdir=LR, bgcolor="transparent", pad="0.3", nodesep="0.55", ranksep="0.8", fontname="Helvetica"];
+  node [shape=box, style="rounded,filled", fillcolor="#111827", fontcolor="#F9FAFB", color="#374151", fontname="Helvetica", margin="0.18,0.12"];
+  edge [color="#6B7280", fontcolor="#6B7280", fontname="Helvetica", fontsize=10];
+
+  UI [label="Angular\nOperations UI"];
+  CAT [label="Catalog\nService :8081"];
+  ORD [label="Order\nService :8082"];
+  INV [label="Inventory\nService :8083"];
+  PAY [label="Payment\nService :8084"];
+  NOT [label="Notification\nService :8085"];
+  K [label="Kafka\nflowcart.events", shape=cylinder];
+  DB [label="PostgreSQL\nservice-owned schemas", shape=cylinder];
+
+  UI -> CAT [label=" REST"];
+  UI -> ORD [label=" REST"];
+  ORD -> UI [label=" SSE"];
+  ORD -> CAT [label=" pricing query"];
+  ORD -> K [label=" outbox"];
+  K -> INV;
+  INV -> K [label=" outbox"];
+  K -> PAY;
+  PAY -> K [label=" outbox"];
+  K -> ORD;
+  K -> NOT;
+  CAT -> DB;
+  ORD -> DB;
+  INV -> DB;
+  PAY -> DB;
+  NOT -> DB;
+}

@@ -1,0 +1,179 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-service
+  namespace: flowcart
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: catalog-service } }
+  template:
+    metadata: { labels: { app: catalog-service } }
+    spec:
+      containers:
+        - name: catalog-service
+          image: ghcr.io/YOUR_GITHUB_USERNAME/flowcart-catalog-service:latest
+          ports: [{ containerPort: 8081 }]
+          env:
+            - { name: SERVER_PORT, value: "8081" }
+            - { name: DB_USER, valueFrom: { secretKeyRef: { name: flowcart-db, key: DB_USER } } }
+            - { name: DB_PASSWORD, valueFrom: { secretKeyRef: { name: flowcart-db, key: DB_PASSWORD } } }
+            - { name: DB_URL, value: "jdbc:postgresql://postgres.example.internal:5432/flowcart?currentSchema=catalog" }
+          readinessProbe: { httpGet: { path: /actuator/health/readiness, port: 8081 }, initialDelaySeconds: 15, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /actuator/health/liveness, port: 8081 }, initialDelaySeconds: 30, periodSeconds: 20 }
+          resources:
+            requests: { cpu: "100m", memory: "192Mi" }
+            limits: { cpu: "500m", memory: "512Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-service
+  namespace: flowcart
+spec:
+  selector: { app: catalog-service }
+  ports: [{ port: 8081, targetPort: 8081 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: flowcart
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: order-service } }
+  template:
+    metadata: { labels: { app: order-service } }
+    spec:
+      containers:
+        - name: order-service
+          image: ghcr.io/YOUR_GITHUB_USERNAME/flowcart-order-service:latest
+          ports: [{ containerPort: 8082 }]
+          env:
+            - { name: SERVER_PORT, value: "8082" }
+            - { name: KAFKA_BOOTSTRAP_SERVERS, valueFrom: { configMapKeyRef: { name: flowcart-config, key: KAFKA_BOOTSTRAP_SERVERS } } }
+            - { name: CATALOG_BASE_URL, valueFrom: { configMapKeyRef: { name: flowcart-config, key: CATALOG_BASE_URL } } }
+            - { name: DB_USER, valueFrom: { secretKeyRef: { name: flowcart-db, key: DB_USER } } }
+            - { name: DB_PASSWORD, valueFrom: { secretKeyRef: { name: flowcart-db, key: DB_PASSWORD } } }
+            - { name: DB_URL, value: "jdbc:postgresql://postgres.example.internal:5432/flowcart?currentSchema=orders" }
+          readinessProbe: { httpGet: { path: /actuator/health/readiness, port: 8082 }, initialDelaySeconds: 15, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /actuator/health/liveness, port: 8082 }, initialDelaySeconds: 30, periodSeconds: 20 }
+          resources:
+            requests: { cpu: "200m", memory: "256Mi" }
+            limits: { cpu: "1", memory: "768Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: flowcart
+spec:
+  selector: { app: order-service }
+  ports: [{ port: 8082, targetPort: 8082 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-service
+  namespace: flowcart
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: inventory-service } }
+  template:
+    metadata: { labels: { app: inventory-service } }
+    spec:
+      containers:
+        - name: inventory-service
+          image: ghcr.io/YOUR_GITHUB_USERNAME/flowcart-inventory-service:latest
+          ports: [{ containerPort: 8083 }]
+          env:
+            - { name: SERVER_PORT, value: "8083" }
+            - { name: KAFKA_BOOTSTRAP_SERVERS, valueFrom: { configMapKeyRef: { name: flowcart-config, key: KAFKA_BOOTSTRAP_SERVERS } } }
+            - { name: DB_USER, valueFrom: { secretKeyRef: { name: flowcart-db, key: DB_USER } } }
+            - { name: DB_PASSWORD, valueFrom: { secretKeyRef: { name: flowcart-db, key: DB_PASSWORD } } }
+            - { name: DB_URL, value: "jdbc:postgresql://postgres.example.internal:5432/flowcart?currentSchema=inventory" }
+          readinessProbe: { httpGet: { path: /actuator/health/readiness, port: 8083 }, initialDelaySeconds: 15, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /actuator/health/liveness, port: 8083 }, initialDelaySeconds: 30, periodSeconds: 20 }
+          resources:
+            requests: { cpu: "150m", memory: "256Mi" }
+            limits: { cpu: "750m", memory: "512Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-service
+  namespace: flowcart
+spec:
+  selector: { app: inventory-service }
+  ports: [{ port: 8083, targetPort: 8083 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  namespace: flowcart
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: payment-service } }
+  template:
+    metadata: { labels: { app: payment-service } }
+    spec:
+      containers:
+        - name: payment-service
+          image: ghcr.io/YOUR_GITHUB_USERNAME/flowcart-payment-service:latest
+          ports: [{ containerPort: 8084 }]
+          env:
+            - { name: SERVER_PORT, value: "8084" }
+            - { name: KAFKA_BOOTSTRAP_SERVERS, valueFrom: { configMapKeyRef: { name: flowcart-config, key: KAFKA_BOOTSTRAP_SERVERS } } }
+            - { name: DB_USER, valueFrom: { secretKeyRef: { name: flowcart-db, key: DB_USER } } }
+            - { name: DB_PASSWORD, valueFrom: { secretKeyRef: { name: flowcart-db, key: DB_PASSWORD } } }
+            - { name: DB_URL, value: "jdbc:postgresql://postgres.example.internal:5432/flowcart?currentSchema=payment" }
+          readinessProbe: { httpGet: { path: /actuator/health/readiness, port: 8084 }, initialDelaySeconds: 15, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /actuator/health/liveness, port: 8084 }, initialDelaySeconds: 30, periodSeconds: 20 }
+          resources:
+            requests: { cpu: "150m", memory: "256Mi" }
+            limits: { cpu: "750m", memory: "512Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  namespace: flowcart
+spec:
+  selector: { app: payment-service }
+  ports: [{ port: 8084, targetPort: 8084 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: flowcart
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: notification-service } }
+  template:
+    metadata: { labels: { app: notification-service } }
+    spec:
+      containers:
+        - name: notification-service
+          image: ghcr.io/YOUR_GITHUB_USERNAME/flowcart-notification-service:latest
+          ports: [{ containerPort: 8085 }]
+          env:
+            - { name: SERVER_PORT, value: "8085" }
+            - { name: KAFKA_BOOTSTRAP_SERVERS, valueFrom: { configMapKeyRef: { name: flowcart-config, key: KAFKA_BOOTSTRAP_SERVERS } } }
+            - { name: DB_USER, valueFrom: { secretKeyRef: { name: flowcart-db, key: DB_USER } } }
+            - { name: DB_PASSWORD, valueFrom: { secretKeyRef: { name: flowcart-db, key: DB_PASSWORD } } }
+            - { name: DB_URL, value: "jdbc:postgresql://postgres.example.internal:5432/flowcart?currentSchema=notification" }
+          readinessProbe: { httpGet: { path: /actuator/health/readiness, port: 8085 }, initialDelaySeconds: 15, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /actuator/health/liveness, port: 8085 }, initialDelaySeconds: 30, periodSeconds: 20 }
+          resources:
+            requests: { cpu: "100m", memory: "192Mi" }
+            limits: { cpu: "500m", memory: "384Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: flowcart
+spec:
+  selector: { app: notification-service }
+  ports: [{ port: 8085, targetPort: 8085 }]

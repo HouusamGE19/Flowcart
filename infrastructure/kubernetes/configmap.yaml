@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flowcart-config
+  namespace: flowcart
+data:
+  KAFKA_BOOTSTRAP_SERVERS: kafka.example.internal:9092
+  CATALOG_BASE_URL: http://catalog-service:8081
+  POSTGRES_HOST: postgres.example.internal
+  POSTGRES_DB: flowcart

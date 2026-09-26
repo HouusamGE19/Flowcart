@@ -1,0 +1,46 @@
+server:
+  port: ${SERVER_PORT:8084}
+
+spring:
+  application:
+    name: payment-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/flowcart?currentSchema=payment}
+    username: ${DB_USER:flowcart}
+    password: ${DB_PASSWORD:flowcart}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    default-schema: payment
+    schemas: payment
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: dev.houssam.flowcart.events
+        spring.json.value.default.type: dev.houssam.flowcart.events.DomainEvent
+flowcart:
+  kafka:
+    events-topic: flowcart.events
+  outbox:
+    publish-delay-ms: 500
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,flyway,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
