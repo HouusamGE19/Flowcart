@@ -15,7 +15,7 @@ FlowCart is not a CRUD storefront. It is a compact distributed system centered o
 - Server-Sent Events (SSE) for live order tracking
 - PostgreSQL + Flyway migrations
 - JPA optimistic locking for inventory
-- Angular operations dashboard
+- Angular editorial storefront with draggable live event console
 - k6 order throughput and concurrent SSE tests
 - Testcontainers integration testing
 - Docker / Docker Compose
@@ -52,7 +52,7 @@ For the full reasoning, see [Architecture](docs/architecture.md), [Event Contrac
 
 | Service | Port | Responsibility |
 |---|---:|---|
-| Angular frontend | `8080` | Operations UI and live SSE timeline |
+| Angular frontend | `8080` | Editorial storefront, catalog/orders/inventory views and draggable SSE event console |
 | Catalog service | `8081` | Products and authoritative pricing |
 | Order service | `8082` | Order aggregate, outbox, saga state and SSE |
 | Inventory service | `8083` | Reservation, optimistic locking and compensation |
@@ -78,7 +78,7 @@ Then open:
 - Payment Swagger: `http://localhost:8084/swagger-ui.html`
 - Notification Swagger: `http://localhost:8085/swagger-ui.html`
 
-The catalog and inventory are seeded automatically by Flyway.
+The catalog and inventory are seeded automatically by Flyway. V2 migrations add six demo products in total, including FlowBook, FlowPods, FlowBoard, FlowMouse, FlowDisplay and FlowDock.
 
 ## Demo 1 — successful order
 
@@ -296,6 +296,8 @@ npm start
 
 The development UI is available at `http://localhost:4200`.
 
+The frontend has four product-facing views (`HOME`, `SHOP`, `ORDERS`, `INVENTORY`). The `EVENTS` control opens a movable console that displays the live SSE trace for the active order without turning the product UI into an engineering dashboard. Inventory is read directly from port `8083`, so inventory/payment/notification services include development CORS configuration for `localhost:4200` and the Docker UI on `localhost:8080`.
+
 ## Repository layout
 
 ```text
@@ -348,3 +350,30 @@ The first version intentionally focuses on the strongest backend concerns. Natur
 ## License
 
 MIT.
+
+## Jordan demo catalog
+
+The portfolio UI now demonstrates the commerce flow with real Jordan Jumpman 2021 PF product records. Flyway `V3__jordan_catalog.sql` adds brand, style code, colorway, description, and image URL fields to the catalog and deactivates the original fictional hardware seeds. `V3__jordan_inventory.sql` seeds matching inventory SKUs.
+
+The image URLs are external demo references and are not redistributed as image binaries in this repository. For a production/public commercial application, replace them with assets you have rights to host.
+
+## Product image hot-link fix
+
+If you already ran the Jordan catalog migration, keep `V3__jordan_catalog.sql` unchanged. `V4__fix_jordan_product_images.sql` updates the University Red image URL without changing Flyway history. Restart `CatalogServiceApplication` once so Flyway applies V4. The Angular UI also has an image fallback handler so a failed remote product image no longer renders broken alt text.
+
+## Owner-supplied sneaker assets (V5)
+
+Flyway `V5__user_supplied_sneaker_catalog.sql` replaces the active Jumpman demo set with five sneaker records whose images were supplied directly for this project. The PNG files live under `frontend/public/products/` and are copied byte-for-byte: the app does **not** resize, recompress, remove backgrounds, or otherwise modify them. PostgreSQL stores stable `/products/...` paths in `image_url`, so Angular still renders a backend-driven catalog without relying on expiring external image hosts.
+
+The matching inventory migration is `inventory-service/.../V4__user_supplied_sneaker_inventory.sql`. Restart Catalog Service and Inventory Service once to apply those migrations, then restart the Angular dev server.
+
+## v6 responsive layout
+The home hero now has dedicated compact-desktop, laptop, tablet, and phone breakpoints. The hero height is bounded so resizing the browser window no longer makes the selector, CTA buttons, price block, and inspiration text collide.
+
+## Shop runway (v7)
+The SHOP page is now an animated editorial runway instead of a static two-column product grid. Each product gets a full-width scene with alternating composition, hover/pointer parallax, dynamic glow, moving product typography, animated CTA underline, and scroll-driven reveal where supported. The interaction respects `prefers-reduced-motion` and collapses to a touch-friendly stacked layout on tablets/phones.
+
+
+## v9 UI polish
+- Nike Air Zoom Generation hero now uses the longer `AIR ZOOM / GENERATION` editorial lockup.
+- SHOP product titles use fixed editorial line breaks; hover no longer makes `11` jump between lines.

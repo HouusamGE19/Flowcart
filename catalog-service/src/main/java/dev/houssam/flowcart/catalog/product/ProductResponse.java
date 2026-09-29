@@ -2,8 +2,22 @@ package dev.houssam.flowcart.catalog.product;
 
 import java.util.UUID;
 
-public record ProductResponse(UUID id, String sku, String name, long priceCents, boolean active) {
+public record ProductResponse(
+        UUID id,
+        String sku,
+        String name,
+        long priceCents,
+        boolean active,
+        String brand,
+        String styleCode,
+        String colorway,
+        String description,
+        String imageUrl
+) {
     static ProductResponse from(Product product) {
-        return new ProductResponse(product.getId(), product.getSku(), product.getName(), product.getPriceCents(), product.isActive());
+        return new ProductResponse(
+                product.getId(), product.getSku(), product.getName(), product.getPriceCents(), product.isActive(),
+                product.getBrand(), product.getStyleCode(), product.getColorway(), product.getDescription(), product.getImageUrl()
+        );
     }
 }

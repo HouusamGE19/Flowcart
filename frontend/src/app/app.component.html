@@ -1,52 +1,146 @@
-<main class="shell">
-  <header class="hero">
-    <div>
-      <p class="eyebrow">EVENT-DRIVEN COMMERCE LAB</p>
-      <h1>FlowCart <span>Operations</span></h1>
-      <p class="lede">A portfolio-grade Java/Spring distributed system: transactional outbox, Kafka choreography, idempotent consumers, compensating inventory actions and live SSE order tracking.</p>
-    </div>
-    <div class="status-card">
-      <span class="pulse"></span>
-      <div><small>Current order state</small><strong>{{ statusLabel() }}</strong></div>
+<div class="app-shell" [style.--accent]="selectedMeta().accent">
+  <header class="topbar">
+    <button class="brand" type="button" (click)="setView('home')"><span class="brand-mark">FC</span><span>FLOWCART</span></button>
+    <nav class="main-nav">
+      <button [class.active]="view()==='home'" (click)="setView('home')">HOME</button>
+      <button [class.active]="view()==='shop'" (click)="setView('shop')">SHOP</button>
+      <button [class.active]="view()==='orders'" (click)="setView('orders')">ORDERS</button>
+      <button [class.active]="view()==='inventory'" (click)="setView('inventory')">INVENTORY</button>
+    </nav>
+    <div class="top-actions">
+      <button class="event-trigger" type="button" (click)="consoleVisible.set(!consoleVisible())"><span class="live-dot"></span>EVENTS</button>
+      <div class="order-indicator"><small>{{ statusLabel() }}</small><strong>{{ orderNumber() }}</strong></div>
     </div>
   </header>
 
-  <section class="grid">
-    <article class="panel order-panel">
-      <div class="panel-title"><div><span>01</span><h2>Create an order</h2></div><p>POST → outbox → Kafka</p></div>
-      <label>Email<input [(ngModel)]="email" type="email"></label>
-      <label>Product<select [(ngModel)]="selectedSku"><option *ngFor="let product of products()" [value]="product.sku">{{ product.name }} — {{ money(product.priceCents) }}</option></select></label>
-      <label>Quantity<input [(ngModel)]="quantity" type="number" min="1" max="10"></label>
-      <label class="toggle"><input [(ngModel)]="simulatePaymentFailure" type="checkbox"><span></span>Force payment failure to demonstrate compensation</label>
-      <button (click)="createOrder()" [disabled]="busy() || !products().length">{{ busy() ? 'Creating…' : 'Place event-driven order' }}</button>
-      <p class="error" *ngIf="error()">{{ error() }}</p>
-    </article>
-
-    <article class="panel snapshot-panel">
-      <div class="panel-title"><div><span>02</span><h2>Order snapshot</h2></div><p>Read model</p></div>
-      <ng-container *ngIf="order() as o; else empty">
-        <dl>
-          <div><dt>Order</dt><dd>{{ o.id }}</dd></div>
-          <div><dt>Status</dt><dd class="state">{{ o.status }}</dd></div>
-          <div><dt>Total</dt><dd>{{ money(o.totalCents) }}</dd></div>
-          <div><dt>Customer</dt><dd>{{ o.customerEmail }}</dd></div>
-        </dl>
-      </ng-container>
-      <ng-template #empty><div class="empty">Create an order to watch the saga execute.</div></ng-template>
-    </article>
-  </section>
-
-  <section class="panel timeline-panel">
-    <div class="panel-title"><div><span>03</span><h2>Live event timeline</h2></div><p>SSE stream</p></div>
-    <div class="timeline" *ngIf="events().length; else noEvents">
-      <div class="event" *ngFor="let event of events()">
-        <time>{{ event.at }}</time><strong>{{ event.name }}</strong><p>{{ event.detail }}</p>
+  <main>
+    <section class="hero-page" [attr.data-sku]="product.sku" *ngIf="view()==='home' && selectedProduct() as product">
+      <div class="hero-ghost" aria-hidden="true"><span>{{ selectedMeta().heroLeft }}</span><span>{{ selectedMeta().heroRight }}</span></div>
+      <div class="hero-title-left">
+        <span class="eyebrow">{{ selectedMeta().eyebrow }}</span>
+        <h1>{{ selectedMeta().heroLeft }}</h1>
       </div>
-    </div>
-    <ng-template #noEvents><div class="empty">Kafka-driven state changes will appear here without refreshing the page.</div></ng-template>
-  </section>
+      <div class="hero-title-right"><span>{{ selectedMeta().edition }}</span><h2>{{ selectedMeta().heroRight }}</h2></div>
 
-  <footer>
-    <span>Java 21</span><span>Spring Boot 4</span><span>Kafka</span><span>PostgreSQL</span><span>SSE</span><span>Angular</span><span>Docker</span><span>k6</span>
-  </footer>
-</main>
+      <div class="hero-product-photo">
+        <img [src]="productImage(product)" [alt]="product.name + ' ' + product.colorway" referrerpolicy="no-referrer" (error)="onProductImageError($event, product.sku)">
+      </div>
+
+      <div class="product-price-block">
+        <b>{{ money(product.priceCents) }}</b>
+        <div><span>{{ selectedMeta().kicker }}</span><h3>{{ product.brand }}<br>{{ product.name | uppercase }}</h3></div>
+      </div>
+
+      <div class="color-picker">
+        <strong>SELECT MODEL :</strong>
+        <div class="color-options">
+          <button *ngFor="let item of homeProducts()" type="button" [class.active]="item.sku===selectedSku()" (click)="selectedSku.set(item.sku)">
+            <img [src]="productImage(item)" [alt]="item.colorway || item.name" referrerpolicy="no-referrer" (error)="onProductImageError($event, item.sku)">
+          </button>
+          <button class="view-more-models" type="button" (click)="setView('shop')">VIEW MORE <span>↗</span></button>
+        </div>
+      </div>
+
+      <div class="hero-actions">
+        <button class="primary-cta" (click)="openCheckout(false)">ADD TO CART</button>
+        <button class="secondary-cta" (click)="openCheckout(false)">BUY NOW</button>
+      </div>
+
+      <div class="inspiration">
+        <strong>INSPIRATION</strong>
+        <p>{{ product.description }}</p>
+        <small>{{ product.colorway }} · {{ product.styleCode }}</small>
+      </div>
+
+      <div class="slide-rail"><span *ngFor="let item of homeProducts()" [class.active]="item.sku===selectedSku()"></span></div>
+    </section>
+
+    <section class="shop-runway" *ngIf="view()==='shop'">
+      <header class="shop-intro">
+        <div>
+          <span>FLOWCART / CURATED SNEAKER DROP</span>
+          <h1>THE<br><em>DROP.</em></h1>
+        </div>
+        <aside>
+          <b>{{ products().length | number:'2.0-0' }} MODELS</b>
+          <p>Move through the collection. Hover to inspect. Click any model to order it directly through the FlowCart event-driven checkout.</p>
+          <span>SCROLL TO EXPLORE ↓</span>
+        </aside>
+      </header>
+
+      <div class="drop-list">
+        <article class="drop-card"
+                 *ngFor="let product of products(); let i = index"
+                 [attr.data-sku]="product.sku"
+                 [style.--drop-accent]="metaFor(product).accent"
+                 (mousemove)="onShopPointerMove($event)"
+                 (mouseleave)="resetShopPointer($event)"
+                 (click)="orderProduct(product.sku)">
+          <div class="drop-index" aria-hidden="true">{{ dropIndex(i) }}</div>
+          <div class="drop-glow" aria-hidden="true"></div>
+
+          <div class="drop-copy">
+            <div class="drop-meta">
+              <span>{{ product.brand }}</span>
+              <span>{{ product.styleCode }}</span>
+            </div>
+            <h2 class="drop-title"><span *ngFor="let line of shopTitleLines(product)">{{ line }}</span></h2>
+            <p>{{ product.colorway }}</p>
+            <div class="drop-bottom">
+              <strong>{{ money(product.priceCents) }}</strong>
+              <span class="view-model">ORDER NOW <b>↗</b></span>
+            </div>
+          </div>
+
+          <div class="drop-product">
+            <img [src]="productImage(product)" [alt]="product.name" referrerpolicy="no-referrer" (error)="onProductImageError($event, product.sku)">
+          </div>
+
+          <div class="drop-track" aria-hidden="true"><span></span></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="editorial-page orders-page" *ngIf="view()==='orders'">
+      <header class="page-heading"><div><span>ORDER LEDGER / LIVE SYSTEM</span><h1>ORDER<br><em>HISTORY.</em></h1></div><p>Every row is backed by the order service. Open any order to attach the draggable SSE event console.</p></header>
+      <div class="orders-table" *ngIf="orders().length; else noOrders">
+        <div class="order-row order-head"><span>ORDER</span><span>CUSTOMER</span><span>VALUE</span><span>STATE</span><span>CREATED</span><span></span></div>
+        <button class="order-row" *ngFor="let item of orders()" (click)="inspectOrder(item)"><span>#{{ shortId(item.id) }}</span><span>{{ item.customerEmail }}</span><span>{{ money(item.totalCents) }}</span><span><b class="status-chip" [attr.data-tone]="statusTone(item.status)">{{ item.status }}</b></span><span>{{ item.createdAt | date:'MMM d, HH:mm' }}</span><span>↗</span></button>
+      </div>
+      <ng-template #noOrders><div class="empty-editorial">NO ORDERS YET.</div></ng-template>
+    </section>
+
+    <section class="editorial-page" *ngIf="view()==='inventory'">
+      <header class="page-heading"><div><span>WAREHOUSE / INVENTORY SERVICE</span><h1>STOCK<br><em>CONTROL.</em></h1></div><p>Inventory is independent from catalog data. Quantities move through Kafka-driven reservation and compensation.</p></header>
+      <div class="inventory-grid">
+        <article class="stock-item" *ngFor="let stock of inventory()" [class.hidden-stock]="!productForSku(stock.sku)">
+          <ng-container *ngIf="productForSku(stock.sku) as product">
+            <img [src]="productImage(product)" [alt]="product.name" referrerpolicy="no-referrer" (error)="onProductImageError($event, product.sku)">
+            <div class="stock-copy"><small>{{ stock.sku }}</small><h2 class="drop-title"><span *ngFor="let line of shopTitleLines(product)">{{ line }}</span></h2><p>{{ product.colorway }}</p></div>
+            <aside class="stock-stats">
+              <div class="stock-stat"><span>AVAILABLE</span><b>{{ stock.availableQuantity }}</b></div>
+              <div class="stock-stat"><span>RESERVED</span><b>{{ stock.reservedQuantity }}</b></div>
+            </aside>
+          </ng-container>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <div class="checkout-backdrop" *ngIf="checkoutOpen()" (click)="closeCheckout()">
+    <section class="checkout-modal" (click)="$event.stopPropagation()" *ngIf="selectedProduct() as product">
+      <button class="sheet-close" type="button" (click)="closeCheckout()">×</button>
+      <div class="checkout-product"><img [src]="productImage(product)" [alt]="product.name" referrerpolicy="no-referrer" (error)="onProductImageError($event, product.sku)"><span>{{ product.colorway }}</span></div>
+      <div class="checkout-form">
+        <small>CHECKOUT / {{ product.styleCode }}</small><h2 class="drop-title"><span *ngFor="let line of shopTitleLines(product)">{{ line }}</span></h2><strong>{{ money(product.priceCents * quantity) }}</strong>
+        <label>EMAIL<input type="email" [(ngModel)]="email"></label>
+        <label>QUANTITY<input type="number" [(ngModel)]="quantity" min="1" max="10"></label>
+        <label class="failure-switch"><input type="checkbox" [(ngModel)]="simulatePaymentFailure"><span></span><b>SIMULATE PAYMENT FAILURE</b></label>
+        <p class="error" *ngIf="error()">{{ error() }}</p>
+        <button class="confirm-order" (click)="createOrder()" [disabled]="busy()">{{ busy() ? 'CREATING ORDER…' : 'CONFIRM ORDER' }}</button>
+      </div>
+    </section>
+  </div>
+
+  <app-event-console [events]="events()" [status]="statusLabel()" [visible]="consoleVisible()" (visibleChange)="consoleVisible.set($event)"></app-event-console>
+</div>

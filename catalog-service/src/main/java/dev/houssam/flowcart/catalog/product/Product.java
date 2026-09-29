@@ -25,15 +25,22 @@ public class Product {
     @Column(nullable = false)
     private boolean active;
 
-    protected Product() {
-    }
+    @Column(length = 80)
+    private String brand;
 
-    public Product(UUID id, String sku, String name, long priceCents, boolean active) {
-        this.id = id;
-        this.sku = sku;
-        this.name = name;
-        this.priceCents = priceCents;
-        this.active = active;
+    @Column(name = "style_code", length = 80)
+    private String styleCode;
+
+    @Column(length = 180)
+    private String colorway;
+
+    @Column(length = 700)
+    private String description;
+
+    @Column(name = "image_url", length = 1200)
+    private String imageUrl;
+
+    protected Product() {
     }
 
     public UUID getId() { return id; }
@@ -41,4 +48,9 @@ public class Product {
     public String getName() { return name; }
     public long getPriceCents() { return priceCents; }
     public boolean isActive() { return active; }
+    public String getBrand() { return brand; }
+    public String getStyleCode() { return styleCode; }
+    public String getColorway() { return colorway; }
+    public String getDescription() { return description; }
+    public String getImageUrl() { return imageUrl; }
 }

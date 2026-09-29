@@ -19,7 +19,7 @@ public class ProductController {
 
     @GetMapping
     public List<ProductResponse> list() {
-        return repository.findAll().stream().map(ProductResponse::from).toList();
+        return repository.findByActiveTrueOrderByNameAsc().stream().map(ProductResponse::from).toList();
     }
 
     @GetMapping("/{sku}")
