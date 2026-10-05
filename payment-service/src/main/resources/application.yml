@@ -4,6 +4,18 @@ server:
 spring:
   application:
     name: payment-service
+  cloud:
+    consul:
+      host: ${CONSUL_HOST:localhost}
+      port: ${CONSUL_PORT:8500}
+      discovery:
+        service-name: ${spring.application.name}
+        hostname: ${CONSUL_DISCOVERY_HOSTNAME:localhost}
+        instance-id: ${spring.application.name}-${SERVER_PORT:8084}
+        register-health-check: ${CONSUL_REGISTER_HEALTH_CHECK:false}
+        health-check-path: /actuator/health
+        health-check-interval: 10s
+        query-passing: true
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/flowcart?currentSchema=payment}
     username: ${DB_USER:flowcart}

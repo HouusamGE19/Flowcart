@@ -14,6 +14,12 @@
   </header>
 
   <main>
+    <section class="api-state" *ngIf="view()==='home' && !selectedProduct()">
+      <div class="api-state__dot"></div>
+      <strong>{{ error() || 'LOADING CATALOG…' }}</strong>
+      <small>Frontend → /api → Gateway :8086 → Consul → catalog-service</small>
+      <button type="button" (click)="retryCatalog()">RETRY</button>
+    </section>
     <section class="hero-page" [attr.data-sku]="product.sku" *ngIf="view()==='home' && selectedProduct() as product">
       <div class="hero-ghost" aria-hidden="true"><span>{{ selectedMeta().heroLeft }}</span><span>{{ selectedMeta().heroRight }}</span></div>
       <div class="hero-title-left">

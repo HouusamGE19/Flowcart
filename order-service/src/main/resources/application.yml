@@ -4,6 +4,18 @@ server:
 spring:
   application:
     name: order-service
+  cloud:
+    consul:
+      host: ${CONSUL_HOST:localhost}
+      port: ${CONSUL_PORT:8500}
+      discovery:
+        service-name: ${spring.application.name}
+        hostname: ${CONSUL_DISCOVERY_HOSTNAME:localhost}
+        instance-id: ${spring.application.name}-${SERVER_PORT:8082}
+        register-health-check: ${CONSUL_REGISTER_HEALTH_CHECK:false}
+        health-check-path: /actuator/health
+        health-check-interval: 10s
+        query-passing: true
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/flowcart?currentSchema=orders}
     username: ${DB_USER:flowcart}
@@ -30,7 +42,7 @@ spring:
 
 flowcart:
   catalog:
-    base-url: ${CATALOG_BASE_URL:http://localhost:8081}
+    base-url: http://catalog-service
   kafka:
     events-topic: flowcart.events
   outbox:

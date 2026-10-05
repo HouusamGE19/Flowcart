@@ -1,4 +1,15 @@
 services:
+  consul:
+    image: hashicorp/consul:2.0.4
+    command: ["agent", "-dev", "-client=0.0.0.0", "-ui"]
+    ports:
+      - "8500:8500"
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   postgres:
     image: postgres:17-alpine
     environment:
@@ -51,12 +62,18 @@ services:
       dockerfile: catalog-service/Dockerfile
     environment:
       SERVER_PORT: 8081
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
+      CONSUL_DISCOVERY_HOSTNAME: catalog-service
+      CONSUL_REGISTER_HEALTH_CHECK: "true"
       DB_URL: jdbc:postgresql://postgres:5432/flowcart?currentSchema=catalog
       DB_USER: flowcart
       DB_PASSWORD: flowcart
     ports:
       - "8081:8081"
     depends_on:
+      consul:
+        condition: service_healthy
       postgres:
         condition: service_healthy
 
@@ -66,14 +83,19 @@ services:
       dockerfile: order-service/Dockerfile
     environment:
       SERVER_PORT: 8082
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
+      CONSUL_DISCOVERY_HOSTNAME: order-service
+      CONSUL_REGISTER_HEALTH_CHECK: "true"
       DB_URL: jdbc:postgresql://postgres:5432/flowcart?currentSchema=orders
       DB_USER: flowcart
       DB_PASSWORD: flowcart
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
-      CATALOG_BASE_URL: http://catalog-service:8081
     ports:
       - "8082:8082"
     depends_on:
+      consul:
+        condition: service_healthy
       postgres:
         condition: service_healthy
       kafka-init:
@@ -87,6 +109,10 @@ services:
       dockerfile: inventory-service/Dockerfile
     environment:
       SERVER_PORT: 8083
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
+      CONSUL_DISCOVERY_HOSTNAME: inventory-service
+      CONSUL_REGISTER_HEALTH_CHECK: "true"
       DB_URL: jdbc:postgresql://postgres:5432/flowcart?currentSchema=inventory
       DB_USER: flowcart
       DB_PASSWORD: flowcart
@@ -94,6 +120,8 @@ services:
     ports:
       - "8083:8083"
     depends_on:
+      consul:
+        condition: service_healthy
       postgres:
         condition: service_healthy
       kafka-init:
@@ -105,6 +133,10 @@ services:
       dockerfile: payment-service/Dockerfile
     environment:
       SERVER_PORT: 8084
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
+      CONSUL_DISCOVERY_HOSTNAME: payment-service
+      CONSUL_REGISTER_HEALTH_CHECK: "true"
       DB_URL: jdbc:postgresql://postgres:5432/flowcart?currentSchema=payment
       DB_USER: flowcart
       DB_PASSWORD: flowcart
@@ -112,6 +144,8 @@ services:
     ports:
       - "8084:8084"
     depends_on:
+      consul:
+        condition: service_healthy
       postgres:
         condition: service_healthy
       kafka-init:
@@ -123,6 +157,10 @@ services:
       dockerfile: notification-service/Dockerfile
     environment:
       SERVER_PORT: 8085
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
+      CONSUL_DISCOVERY_HOSTNAME: notification-service
+      CONSUL_REGISTER_HEALTH_CHECK: "true"
       DB_URL: jdbc:postgresql://postgres:5432/flowcart?currentSchema=notification
       DB_USER: flowcart
       DB_PASSWORD: flowcart
@@ -130,10 +168,38 @@ services:
     ports:
       - "8085:8085"
     depends_on:
+      consul:
+        condition: service_healthy
       postgres:
         condition: service_healthy
       kafka-init:
         condition: service_completed_successfully
+
+  gateway-service:
+    build:
+      context: .
+      dockerfile: gateway-service/Dockerfile
+    environment:
+      SERVER_PORT: 8086
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
+      CONSUL_DISCOVERY_HOSTNAME: gateway-service
+      CONSUL_REGISTER_HEALTH_CHECK: "true"
+    ports:
+      - "8086:8086"
+    depends_on:
+      consul:
+        condition: service_healthy
+      catalog-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      inventory-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
 
   frontend:
     build:
@@ -142,8 +208,7 @@ services:
     ports:
       - "8080:80"
     depends_on:
-      - catalog-service
-      - order-service
+      - gateway-service
 
 volumes:
   postgres-data:

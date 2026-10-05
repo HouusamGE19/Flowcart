@@ -764,3 +764,23 @@
   .stock-stat{padding-top:15px}
   .stock-stat b{font-size:31px!important}
 }
+
+
+/* ===== v12: API state ===== */
+.api-state{
+  min-height:calc(100vh - 90px);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+  text-align:center;
+  color:#fff;
+  letter-spacing:.12em;
+}
+.api-state__dot{width:9px;height:9px;border-radius:50%;background:#f31319;box-shadow:0 0 18px rgba(243,19,25,.75);animation:apiPulse 1.2s ease-in-out infinite}
+.api-state strong{font-size:13px}
+.api-state small{max-width:560px;color:#727272;font-size:9px}
+.api-state button{margin-top:8px;padding:12px 20px;border:1px solid #333;background:#0b0b0b;color:#fff;font:inherit;font-size:9px;font-weight:900;letter-spacing:.12em;cursor:pointer}
+.api-state button:hover{border-color:#f31319}
+@keyframes apiPulse{50%{opacity:.3;transform:scale(.72)}}

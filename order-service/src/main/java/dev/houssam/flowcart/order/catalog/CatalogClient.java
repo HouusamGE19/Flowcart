@@ -1,6 +1,7 @@
 package dev.houssam.flowcart.order.catalog;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -9,7 +10,7 @@ import org.springframework.web.client.RestClient;
 public class CatalogClient {
     private final RestClient client;
 
-    public CatalogClient(RestClient.Builder builder, @Value("${flowcart.catalog.base-url}") String baseUrl) {
+    public CatalogClient(@LoadBalanced RestClient.Builder builder, @Value("${flowcart.catalog.base-url}") String baseUrl) {
         this.client = builder.baseUrl(baseUrl).build();
     }
 

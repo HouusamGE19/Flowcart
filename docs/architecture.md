@@ -7,17 +7,29 @@ FlowCart is deliberately split into small services that demonstrate two communic
 
 ```mermaid
 flowchart LR
-    UI[Angular Operations UI] -->|REST| CAT[Catalog Service]
-    UI -->|REST + SSE| ORD[Order Service]
-    ORD -->|GET product price| CAT
+    UI[Angular Operations UI] -->|REST + SSE| GW[Spring Cloud Gateway]
+    GW -->|lb://catalog-service| CAT[Catalog Service]
+    GW -->|lb://order-service| ORD[Order Service]
+    GW -->|lb://inventory-service| INV[Inventory Service]
+    GW -->|lb://payment-service| PAY[Payment Service]
+    GW -->|lb://notification-service| NOTIF[Notification Service]
+
+    CONSUL[(Consul Registry)]
+    GW -. discovery .-> CONSUL
+    CAT -. register .-> CONSUL
+    ORD -. register .-> CONSUL
+    INV -. register .-> CONSUL
+    PAY -. register .-> CONSUL
+    NOTIF -. register .-> CONSUL
+
+    ORD -->|load-balanced GET product price| CAT
     ORD -->|Transactional Outbox| K[(Kafka: flowcart.events)]
-    K --> INV[Inventory Service]
+    K --> INV
     INV -->|Outbox| K
-    K --> PAY[Payment Service]
+    K --> PAY
     PAY -->|Outbox| K
     K --> ORD
-    K --> NOTIF[Notification Service]
-    ORD -->|SSE| UI
+    K --> NOTIF
 
     CAT --> PG[(PostgreSQL)]
     ORD --> PG
@@ -30,11 +42,23 @@ flowchart LR
 
 | Service | Responsibility | Port | Data ownership |
 |---|---|---:|---|
+| gateway-service | API routing and load-balanced service discovery | 8086 | none |
 | catalog-service | Product query/pricing | 8081 | `catalog` schema |
 | order-service | Order aggregate, saga state, SSE projection | 8082 | `orders` schema |
 | inventory-service | Stock reservation and compensation | 8083 | `inventory` schema |
 | payment-service | Deterministic payment simulator | 8084 | `payment` schema |
 | notification-service | Idempotent simulated email delivery | 8085 | `notification` schema |
+
+## Service discovery
+
+Each Spring service registers with Consul using its `spring.application.name`. The gateway and
+Order Service do not need physical host/port knowledge for discovered HTTP targets:
+
+- Gateway routes use `lb://catalog-service`, `lb://order-service`, and the other logical service IDs.
+- Order Service uses a `@LoadBalanced RestClient.Builder` and calls `http://catalog-service`.
+- Spring Cloud LoadBalancer asks the Consul-backed `DiscoveryClient` for healthy instances and selects one.
+
+Consul is not involved in asynchronous event delivery. Kafka remains the event backbone.
 
 ## Reliability model
 

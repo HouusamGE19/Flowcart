@@ -21,6 +21,8 @@ FlowCart is not a CRUD storefront. It is a compact distributed system centered o
 - Docker / Docker Compose
 - Kubernetes deployment templates
 - GitHub Actions CI
+- Spring Cloud Consul service discovery
+- Spring Cloud Gateway + LoadBalancer routing
 - Actuator + Prometheus-compatible metrics
 - OpenAPI / Swagger UI
 
@@ -53,6 +55,8 @@ For the full reasoning, see [Architecture](docs/architecture.md), [Event Contrac
 | Service | Port | Responsibility |
 |---|---:|---|
 | Angular frontend | `8080` | Editorial storefront, catalog/orders/inventory views and draggable SSE event console |
+| API Gateway | `8086` | Single backend entry point; routes via Consul + Spring Cloud LoadBalancer |
+| Consul | `8500` | Service registry, discovery UI and health checks |
 | Catalog service | `8081` | Products and authoritative pricing |
 | Order service | `8082` | Order aggregate, outbox, saga state and SSE |
 | Inventory service | `8083` | Reservation, optimistic locking and compensation |
@@ -60,6 +64,34 @@ For the full reasoning, see [Architecture](docs/architecture.md), [Event Contrac
 | Notification service | `8085` | Idempotent simulated email notifications |
 | PostgreSQL | `5432` | Service-owned schemas |
 | Kafka | `9092` | Event backbone |
+
+## Run with Spring services from IntelliJ
+
+This is the most convenient development mode if you want to debug the Java services locally.
+
+Start only infrastructure first:
+
+```bash
+docker compose up -d postgres kafka kafka-init consul
+```
+
+Then run these Spring Boot applications from IntelliJ:
+
+```text
+CatalogServiceApplication       :8081
+OrderServiceApplication         :8082
+InventoryServiceApplication     :8083
+PaymentServiceApplication       :8084
+NotificationServiceApplication  :8085
+GatewayServiceApplication       :8086
+```
+
+Finally run Angular with `npm start`.
+
+In this hybrid mode the services register in Consul as `localhost:<port>`. Consul HTTP health
+checks are disabled by default because a Consul container cannot health-check the host through its own
+`localhost`. In full Docker Compose mode, `CONSUL_REGISTER_HEALTH_CHECK=true` is supplied and the
+registered Docker service hostnames are health-checked normally.
 
 ## Run the complete system
 
@@ -72,6 +104,8 @@ docker compose up --build
 Then open:
 
 - Operations UI: `http://localhost:8080`
+- API Gateway: `http://localhost:8086`
+- Consul UI: `http://localhost:8500`
 - Catalog Swagger: `http://localhost:8081/swagger-ui.html`
 - Order Swagger: `http://localhost:8082/swagger-ui.html`
 - Inventory Swagger: `http://localhost:8083/swagger-ui.html`
@@ -83,7 +117,7 @@ The catalog and inventory are seeded automatically by Flyway. V2 migrations add 
 ## Demo 1 — successful order
 
 ```bash
-curl -sS -X POST http://localhost:8082/api/orders \
+curl -sS -X POST http://localhost:8086/api/orders \
   -H 'Content-Type: application/json' \
   -d '{
     "customerEmail":"engineer@example.com",
@@ -95,7 +129,7 @@ curl -sS -X POST http://localhost:8082/api/orders \
 Copy the returned order ID and watch its stream:
 
 ```bash
-curl -N http://localhost:8082/api/orders/<ORDER_ID>/events
+curl -N http://localhost:8086/api/orders/<ORDER_ID>/events
 ```
 
 The order will progress through inventory reservation, payment and confirmation without a synchronous call chain between fulfillment services.
@@ -105,7 +139,7 @@ The order will progress through inventory reservation, payment and confirmation 
 Create an order with `simulatePaymentFailure=true`:
 
 ```bash
-curl -sS -X POST http://localhost:8082/api/orders \
+curl -sS -X POST http://localhost:8086/api/orders \
   -H 'Content-Type: application/json' \
   -d '{
     "customerEmail":"engineer@example.com",
@@ -117,7 +151,7 @@ curl -sS -X POST http://localhost:8082/api/orders \
 Observe inventory before and after:
 
 ```bash
-curl -sS http://localhost:8083/api/inventory
+curl -sS http://localhost:8086/api/inventory
 ```
 
 The expected business outcome is:
@@ -133,6 +167,31 @@ OrderCreated
 `OrderCancelled` and `InventoryReleased` are produced by independent Kafka consumer groups, so their relative arrival order is not guaranteed. That is intentional: the invariant is that the order ends cancelled and the stock reservation is compensated, not that those two side effects happen in a particular wall-clock order.
 
 This is a deliberately visible saga compensation path rather than hidden rollback logic.
+
+## Service discovery and API Gateway
+
+Every backend service includes Spring Cloud Consul Discovery and registers itself under its
+`spring.application.name`. Consul checks `/actuator/health`, and discovery-aware callers can resolve
+healthy service instances by logical service name.
+
+The Angular client talks to the gateway on port `8086`:
+
+```text
+Angular
+   |
+   v
+gateway-service
+   |
+   +-- lb://catalog-service ------> Consul ------> Catalog instance
+   +-- lb://order-service --------> Consul ------> Order instance
+   +-- lb://inventory-service ----> Consul ------> Inventory instance
+```
+
+Order Service also demonstrates service-to-service discovery: its load-balanced `RestClient` calls
+`http://catalog-service`, and Spring Cloud LoadBalancer resolves that logical service name using Consul.
+
+Kafka is unchanged: asynchronous Saga/outbox traffic still goes through `flowcart.events`; Consul is used
+for HTTP discovery, not for Kafka messaging.
 
 ## Why the outbox exists
 

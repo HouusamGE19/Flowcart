@@ -41,10 +41,12 @@ const FALLBACK_PRESENTATION: ProductPresentation = {
   styleUrl: './app.component.css'
 })
 export class AppComponent implements OnInit, OnDestroy {
-  private readonly host = window.location.hostname || 'localhost';
-  private readonly catalogApi = `http://${this.host}:8081`;
-  private readonly orderApi = `http://${this.host}:8082`;
-  private readonly inventoryApi = `http://${this.host}:8083`;
+  // Browser calls stay same-origin. In local dev Angular proxies /api to :8086;
+  // in Docker/production Nginx proxies /api to gateway-service:8086.
+  private readonly apiBase = '';
+  private readonly catalogApi = this.apiBase;
+  private readonly orderApi = this.apiBase;
+  private readonly inventoryApi = this.apiBase;
   private source?: EventSource;
 
   readonly view = signal<ViewName>('home');
@@ -85,6 +87,13 @@ export class AppComponent implements OnInit, OnDestroy {
   constructor(private readonly http: HttpClient) {}
 
   ngOnInit(): void {
+    this.loadProducts();
+    this.loadOrders();
+    this.loadInventory();
+  }
+
+  retryCatalog(): void {
+    this.error.set('');
     this.loadProducts();
     this.loadOrders();
     this.loadInventory();
@@ -262,7 +271,10 @@ export class AppComponent implements OnInit, OnDestroy {
           this.selectedSku.set(active.find(product => product.sku === 'AJ1-OW-CHICAGO-AA3834-101')?.sku ?? active[0].sku);
         }
       },
-      error: () => this.error.set('Catalog service is unavailable on port 8081.')
+      error: err => {
+        console.error('Catalog request failed', err);
+        this.error.set('CATALOG API UNAVAILABLE — CHECK GATEWAY :8086');
+      }
     });
   }
 
