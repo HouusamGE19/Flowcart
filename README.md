@@ -26,6 +26,31 @@ FlowCart is not a CRUD storefront. It is a compact distributed system centered o
 - Actuator + Prometheus-compatible metrics
 - OpenAPI / Swagger UI
 
+## Screenshots
+
+### Storefront
+
+![FlowCart home](docs/screenshots/home.png)
+
+### Shop runway
+
+![FlowCart shop](docs/screenshots/shop.png)
+
+### Checkout
+
+![FlowCart checkout](docs/screenshots/checkout.png)
+
+### Order history
+
+![FlowCart orders](docs/screenshots/orders.png)
+
+### Inventory
+
+![FlowCart inventory](docs/screenshots/inventory.png)
+
+### Live event stream
+
+![FlowCart SSE event stream](docs/screenshots/events.png)
 ## Architecture
 
 ![FlowCart architecture](docs/architecture.svg)
@@ -409,29 +434,3 @@ The first version intentionally focuses on the strongest backend concerns. Natur
 ## License
 
 MIT.
-
-## Screenshots
-
-### Storefront
-
-![FlowCart home](docs/screenshots/home.png)
-
-### Shop runway
-
-![FlowCart shop](docs/screenshots/shop.png)
-
-### Checkout
-
-![FlowCart checkout](docs/screenshots/checkout.png)
-
-### Order history
-
-![FlowCart orders](docs/screenshots/orders.png)
-
-### Inventory
-
-![FlowCart inventory](docs/screenshots/inventory.png)
-
-### Live event stream
-
-![FlowCart SSE event stream](docs/screenshots/events.png)
