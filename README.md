@@ -410,29 +410,28 @@ The first version intentionally focuses on the strongest backend concerns. Natur
 
 MIT.
 
-## Jordan demo catalog
+## Screenshots
 
-The portfolio UI now demonstrates the commerce flow with real Jordan Jumpman 2021 PF product records. Flyway `V3__jordan_catalog.sql` adds brand, style code, colorway, description, and image URL fields to the catalog and deactivates the original fictional hardware seeds. `V3__jordan_inventory.sql` seeds matching inventory SKUs.
+### Storefront
 
-The image URLs are external demo references and are not redistributed as image binaries in this repository. For a production/public commercial application, replace them with assets you have rights to host.
+![FlowCart home](docs/screenshots/home.png)
 
-## Product image hot-link fix
+### Shop runway
 
-If you already ran the Jordan catalog migration, keep `V3__jordan_catalog.sql` unchanged. `V4__fix_jordan_product_images.sql` updates the University Red image URL without changing Flyway history. Restart `CatalogServiceApplication` once so Flyway applies V4. The Angular UI also has an image fallback handler so a failed remote product image no longer renders broken alt text.
+![FlowCart shop](docs/screenshots/shop.png)
 
-## Owner-supplied sneaker assets (V5)
+### Checkout
 
-Flyway `V5__user_supplied_sneaker_catalog.sql` replaces the active Jumpman demo set with five sneaker records whose images were supplied directly for this project. The PNG files live under `frontend/public/products/` and are copied byte-for-byte: the app does **not** resize, recompress, remove backgrounds, or otherwise modify them. PostgreSQL stores stable `/products/...` paths in `image_url`, so Angular still renders a backend-driven catalog without relying on expiring external image hosts.
+![FlowCart checkout](docs/screenshots/checkout.png)
 
-The matching inventory migration is `inventory-service/.../V4__user_supplied_sneaker_inventory.sql`. Restart Catalog Service and Inventory Service once to apply those migrations, then restart the Angular dev server.
+### Order history
 
-## v6 responsive layout
-The home hero now has dedicated compact-desktop, laptop, tablet, and phone breakpoints. The hero height is bounded so resizing the browser window no longer makes the selector, CTA buttons, price block, and inspiration text collide.
+![FlowCart orders](docs/screenshots/orders.png)
 
-## Shop runway (v7)
-The SHOP page is now an animated editorial runway instead of a static two-column product grid. Each product gets a full-width scene with alternating composition, hover/pointer parallax, dynamic glow, moving product typography, animated CTA underline, and scroll-driven reveal where supported. The interaction respects `prefers-reduced-motion` and collapses to a touch-friendly stacked layout on tablets/phones.
+### Inventory
 
+![FlowCart inventory](docs/screenshots/inventory.png)
 
-## v9 UI polish
-- Nike Air Zoom Generation hero now uses the longer `AIR ZOOM / GENERATION` editorial lockup.
-- SHOP product titles use fixed editorial line breaks; hover no longer makes `11` jump between lines.
+### Live event stream
+
+![FlowCart SSE event stream](docs/screenshots/events.png)
